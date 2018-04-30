@@ -189,15 +189,15 @@ class GRU4Rec:
 
     def fit(self, data):
         self.error_during_train = False
+        # add 0-N index for item ('ItemIdx')
         itemids = data[self.item_key].unique()
         self.n_items = len(itemids)
         # self.itemidmap = pd.Series(index=itemids, data=np.arange(self.n_items))
         # data = pd.merge(data, pd.DataFrame({self.item_key: itemids, 'ItemIdx': self.itemidmap[itemids].values}),
         #                 on=self.item_key, how='inner')
 
-        # add 0-N index for item
-        self.itemidmap = pd.Series(index=itemids, data=np.arange(self.n_items))
-        data = pd.merge(data, self.itemidmap, left_on=self.item_key, right_index=True, how='inner')
+        self.itemidmap = pd.DataFrame({self.item_key: itemids, 'ItemIdx': np.arange(self.n_items)})
+        data = pd.merge(data, self.itemidmap, on=self.item_key, how='inner')
 
         offset_sessions = self.init(data)
         print('fitting model...')

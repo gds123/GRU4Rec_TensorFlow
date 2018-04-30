@@ -12,12 +12,14 @@ import argparse
 import model
 import evaluation
 
-PATH_TO_TRAIN = '/content/data/rsc15_train_full.txt'
-PATH_TO_TEST = '/content/data/rsc15_test.txt'
+# online
+# PATH_TO_TRAIN = '/content/data/rsc15_train_full.txt'
+# PATH_TO_TEST = '/content/data/rsc15_test.txt'
 
-# DATA = '/Users/guowang/PycharmProjects/tensorflow/exercise/pyGRU4REC/data/rsc15/processed/'
-# PATH_TO_TRAIN = DATA + 'rsc15_train_tr.txt'
-# PATH_TO_TEST = DATA + 'rsc15_test.txt'
+# offline
+DATA = '/Users/guowang/PycharmProjects/tensorflow/exercise/pyGRU4REC/data/rsc15/processed/'
+PATH_TO_TRAIN = DATA + 'rsc15_train_tr.txt'
+PATH_TO_TEST = DATA + 'rsc15_test.txt'
 
 
 class Args(object):
