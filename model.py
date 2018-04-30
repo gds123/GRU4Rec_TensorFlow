@@ -79,7 +79,7 @@ class GRU4Rec:
             return
 
         # use self.predict_state to hold hidden states during prediction. 
-        self.predict_state = [np.zeros([self.batch_size, self.rnn_size], dtype=np.float32) for _ in xrange(self.layers)]
+        self.predict_state = [np.zeros([self.batch_size, self.rnn_size], dtype=np.float32) for _ in range(self.layers)]
         # restore
         ckpt = tf.train.get_checkpoint_state(self.checkpoint_dir)
         if ckpt and ckpt.model_checkpoint_path:
@@ -181,7 +181,8 @@ class GRU4Rec:
         self.train_op = optimizer.apply_gradients(capped_gvs, global_step=self.global_step)
 
     def init(self, data):
-        data.sort([self.session_key, self.time_key], inplace=True)
+        # session start position offset
+        data.sort_values(by=[self.session_key, self.time_key], inplace=True)
         offset_sessions = np.zeros(data[self.session_key].nunique() + 1, dtype=np.int32)
         offset_sessions[1:] = data.groupby(self.session_key).size().cumsum()
         return offset_sessions
@@ -190,14 +191,19 @@ class GRU4Rec:
         self.error_during_train = False
         itemids = data[self.item_key].unique()
         self.n_items = len(itemids)
-        self.itemidmap = pd.Series(data=np.arange(self.n_items), index=itemids)
-        data = pd.merge(data, pd.DataFrame({self.item_key: itemids, 'ItemIdx': self.itemidmap[itemids].values}),
-                        on=self.item_key, how='inner')
+        # self.itemidmap = pd.Series(index=itemids, data=np.arange(self.n_items))
+        # data = pd.merge(data, pd.DataFrame({self.item_key: itemids, 'ItemIdx': self.itemidmap[itemids].values}),
+        #                 on=self.item_key, how='inner')
+
+        # add 0-N index for item
+        self.itemidmap = pd.Series(index=itemids, data=np.arange(self.n_items))
+        data = pd.merge(data, self.itemidmap, left_on=self.item_key, right_index=True, how='inner')
+
         offset_sessions = self.init(data)
         print('fitting model...')
-        for epoch in xrange(self.n_epochs):
+        for epoch in range(self.n_epochs):
             epoch_cost = []
-            state = [np.zeros([self.batch_size, self.rnn_size], dtype=np.float32) for _ in xrange(self.layers)]
+            state = [np.zeros([self.batch_size, self.rnn_size], dtype=np.float32) for _ in range(self.layers)]
             session_idx_arr = np.arange(len(offset_sessions) - 1)
             iters = np.arange(self.batch_size)
             maxiter = iters.max()

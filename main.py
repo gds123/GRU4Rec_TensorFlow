@@ -12,11 +12,15 @@ import argparse
 import model
 import evaluation
 
-PATH_TO_TRAIN = '/content/data/rsc15_train_full.txt'
-PATH_TO_TEST = '/content/data/rsc15_test.txt'
+# PATH_TO_TRAIN = '/content/data/rsc15_train_full.txt'
+# PATH_TO_TEST = '/content/data/rsc15_test.txt'
+
+DATA = '/Users/guowang/PycharmProjects/tensorflow/exercise/pyGRU4REC/data/rsc15/processed/'
+PATH_TO_TRAIN = DATA + 'rsc15_train_tr.txt'
+PATH_TO_TEST = DATA + 'rsc15_test.txt'
 
 
-class Args():
+class Args(object):
     is_training = False
     layers = 1
     rnn_size = 100
@@ -75,6 +79,7 @@ if __name__ == '__main__':
     args.loss = command_line.loss
     args.dropout_p_hidden = 1.0 if args.is_training == 0 else command_line.dropout
     print(args.dropout_p_hidden)
+
     if not os.path.exists(args.checkpoint_dir):
         os.mkdir(args.checkpoint_dir)
     gpu_config = tf.ConfigProto()
