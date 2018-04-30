@@ -12,8 +12,9 @@ import argparse
 import model
 import evaluation
 
-PATH_TO_TRAIN = '/PATH/TO/rsc15_train_full.txt'
-PATH_TO_TEST = '/PATH/TO/rsc15_test.txt'
+PATH_TO_TRAIN = '/content/data/rsc15_train_full.txt'
+PATH_TO_TEST = '/content/data/rsc15_test.txt'
+
 
 class Args():
     is_training = False
@@ -25,19 +26,20 @@ class Args():
     learning_rate = 0.001
     decay = 0.96
     decay_steps = 1e4
-    sigma = 0
-    init_as_normal = False
-    reset_after_session = True
+    sigma = 0  #
+    init_as_normal = False  #
+    reset_after_session = True  #
     session_key = 'SessionId'
     item_key = 'ItemId'
     time_key = 'Time'
-    grad_cap = 0
-    test_model = 2
+    grad_cap = 0  #
+    test_model = 2  #
     checkpoint_dir = './checkpoint'
     loss = 'cross-entropy'
     final_act = 'softmax'
     hidden_act = 'tanh'
     n_items = -1
+
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='GRU4Rec args')
@@ -59,6 +61,7 @@ if __name__ == '__main__':
     command_line = parseArgs()
     data = pd.read_csv(PATH_TO_TRAIN, sep='\t', dtype={'ItemId': np.int64})
     valid = pd.read_csv(PATH_TO_TEST, sep='\t', dtype={'ItemId': np.int64})
+    # 参数
     args = Args()
     args.n_items = len(data['ItemId'].unique())
     args.layers = command_line.layer
