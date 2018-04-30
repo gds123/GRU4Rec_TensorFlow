@@ -59,7 +59,7 @@ def evaluate_sessions_batch(model, train_data, test_data, cut_off=20, batch_size
         start_valid = start[valid_mask]
         minlen = (end[valid_mask]-start_valid).min()
         in_idx[valid_mask] = test_data[item_key].values[start_valid]
-        for i in xrange(minlen-1):
+        for i in range(minlen-1):
             out_idx = test_data[item_key].values[start_valid+i+1]
             preds = model.predict_next_batch(iters, in_idx, itemidmap, batch_size)
             preds.fillna(0, inplace=True)

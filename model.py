@@ -219,7 +219,7 @@ class GRU4Rec:
                     # prepare inputs, targeted outputs and hidden states
                     fetches = [self.cost, self.final_state, self.global_step, self.lr, self.train_op]
                     feed_dict = {self.X: in_idx, self.Y: out_idx}
-                    for j in xrange(self.layers):
+                    for j in range(self.layers):
                         feed_dict[self.state[j]] = state[j]
 
                     cost, state, step, lr, _ = self.sess.run(fetches, feed_dict)
@@ -242,7 +242,7 @@ class GRU4Rec:
                     start[idx] = offset_sessions[session_idx_arr[maxiter]]
                     end[idx] = offset_sessions[session_idx_arr[maxiter] + 1]
                 if len(mask) and self.reset_after_session:
-                    for i in xrange(self.layers):
+                    for i in range(self.layers):
                         state[i][mask] = 0
 
             avgc = np.mean(epoch_cost)
@@ -283,14 +283,14 @@ class GRU4Rec:
 
         session_change = np.arange(batch)[session_ids != self.current_session]
         if len(session_change) > 0:  # change internal states with session changes
-            for i in xrange(self.layers):
+            for i in range(self.layers):
                 self.predict_state[i][session_change] = 0.0
             self.current_session = session_ids.copy()
 
         in_idxs = itemidmap[input_item_ids]
         fetches = [self.yhat, self.final_state]
         feed_dict = {self.X: in_idxs}
-        for i in xrange(self.layers):
+        for i in range(self.layers):
             feed_dict[self.state[i]] = self.predict_state[i]
         preds, self.predict_state = self.sess.run(fetches, feed_dict)
         preds = np.asarray(preds).T
