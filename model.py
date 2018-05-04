@@ -181,7 +181,7 @@ class GRU4Rec:
         self.train_op = optimizer.apply_gradients(capped_gvs, global_step=self.global_step)
 
     def init(self, data):
-        # session start position offset
+        # session start position offset (sorted by session id)
         data.sort_values(by=[self.session_key, self.time_key], inplace=True)
         offset_sessions = np.zeros(data[self.session_key].nunique() + 1, dtype=np.int32)
         offset_sessions[1:] = data.groupby(self.session_key).size().cumsum()
@@ -199,8 +199,10 @@ class GRU4Rec:
         self.itemidmap = pd.DataFrame({self.item_key: itemids, 'ItemIdx': np.arange(self.n_items)})
         data = pd.merge(data, self.itemidmap, on=self.item_key, how='inner')
 
-        offset_sessions = self.init(data)
+        offset_sessions = self.init(data)  # session start position offset
         print('fitting model...')
+
+        # training
         for epoch in range(self.n_epochs):
             epoch_cost = []
             state = [np.zeros([self.batch_size, self.rnn_size], dtype=np.float32) for _ in range(self.layers)]
