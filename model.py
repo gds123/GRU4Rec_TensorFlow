@@ -212,9 +212,10 @@ class GRU4Rec:
             x['Lived_t'] = x[self.time_key] - x['Min_t']
             lived_t = x['Lived_t']  # Series
 
-            avg = lived_t.mean()
-            std = lived_t.std()
-            print('avg:%s std:%s' % (avg, std))
+            # avg = lived_t.mean()
+            # std = lived_t.std()
+            # print('avg:%s std:%s' % (avg, std))
+            print(lived_t.describe())
         lived_time()
 
         offset_sessions = self.init(data)  # session start position offset
