@@ -201,7 +201,7 @@ class GRU4Rec:
         self.itemidmap = pd.DataFrame({self.item_key: itemids, 'ItemIdx': np.arange(self.n_items)})
         data = pd.merge(data, self.itemidmap, on=self.item_key, how='inner')
 
-        # compute item lived time
+        # compute item lived time statistics
         def lived_time():
             grouped_item = data.groupby('ItemIdx', as_index=False)[self.time_key]
             # item group by id, selected by time ['ItemIdx', 'Time']
@@ -212,9 +212,7 @@ class GRU4Rec:
             x['Lived_t'] = x[self.time_key] - x['Min_t']
             lived_t = x['Lived_t']  # Series
 
-            # avg = lived_t.mean()
-            # std = lived_t.std()
-            # print('avg:%s std:%s' % (avg, std))
+            lived_t = lived_t / 86400
             print(lived_t.describe())
         lived_time()
 

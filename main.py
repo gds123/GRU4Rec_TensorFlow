@@ -28,7 +28,7 @@ class Args(object):
     rnn_size = 100
     n_epochs = 3
     batch_size = 50
-    dropout_p_hidden=1
+    dropout_p_hidden = 1
     learning_rate = 0.001
     decay = 0.96
     decay_steps = 1e4
@@ -56,8 +56,10 @@ def parseArgs():
     parser.add_argument('--train', default=1, type=int)
     parser.add_argument('--test', default=2, type=int)
     parser.add_argument('--hidden_act', default='tanh', type=str)
-    parser.add_argument('--final_act', default='softmax', type=str)
-    parser.add_argument('--loss', default='cross-entropy', type=str)
+    parser.add_argument('--final_act', default='linear', type=str)
+    parser.add_argument('--loss', default='top1', type=str)
+    # parser.add_argument('--final_act', default='softmax', type=str)
+    # parser.add_argument('--loss', default='cross-entropy', type=str)
     parser.add_argument('--dropout', default='0.5', type=float)
     
     return parser.parse_args()
