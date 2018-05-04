@@ -189,6 +189,8 @@ class GRU4Rec:
 
     def fit(self, data):
         self.error_during_train = False
+
+        # data preprocess
         # add 0-N index for item ('ItemIdx')
         itemids = data[self.item_key].unique()
         self.n_items = len(itemids)
@@ -198,6 +200,22 @@ class GRU4Rec:
 
         self.itemidmap = pd.DataFrame({self.item_key: itemids, 'ItemIdx': np.arange(self.n_items)})
         data = pd.merge(data, self.itemidmap, on=self.item_key, how='inner')
+
+        # compute item lived time
+        def lived_time():
+            grouped_item = data.groupby('ItemIdx', as_index=False)[self.time_key]
+            # item group by id, selected by time ['ItemIdx', 'Time']
+
+            min_t = grouped_item.agg(np.min)
+            min_t.columns = ['ItemIdx', 'Min_t']  # rename column
+            x = pd.merge(data, min_t, on='ItemIdx')  # merge min_t to data
+            x['Lived_t'] = x[self.time_key] - x['Min_t']
+            lived_t = x['Lived_t']  # Series
+
+            avg = lived_t.mean()
+            std = lived_t.std()
+            print('avg:%s std:%s' % (avg, std))
+        lived_time()
 
         offset_sessions = self.init(data)  # session start position offset
         print('fitting model...')
