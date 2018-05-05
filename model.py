@@ -32,6 +32,7 @@ class GRU4Rec:
         self.grad_cap = args.grad_cap
         self.n_items = args.n_items
 
+
         # hidden activation
         if args.hidden_act == 'tanh':
             self.hidden_act = self.tanh
@@ -113,8 +114,8 @@ class GRU4Rec:
         return tf.reduce_mean(-tf.log(tf.nn.sigmoid(tf.diag_part(yhat) - yhatT)))
 
     def top1(self, yhat):
-        yhatT = tf.transpose(yhat)
-        term1 = tf.reduce_mean(tf.nn.sigmoid(-tf.diag_part(yhat) + yhatT) + tf.nn.sigmoid(yhatT ** 2), axis=0)
+        yhatT = tf.transpose(yhat)  # 行列交换
+        term1 = tf.reduce_mean(tf.nn.sigmoid(-tf.diag_part(yhat) + yhatT) + tf.nn.sigmoid(yhatT ** 2), axis=0)  # 采样矩阵-target向量
         term2 = tf.nn.sigmoid(tf.diag_part(yhat) ** 2) / self.batch_size
         return tf.reduce_mean(term1 - term2)
 
@@ -188,7 +189,7 @@ class GRU4Rec:
         offset_sessions[1:] = data.groupby(self.session_key).size().cumsum()
         return offset_sessions
 
-    def fit(self, data):
+    def fit2(self, data):
         self.error_during_train = False
 
         # data preprocess
@@ -213,8 +214,8 @@ class GRU4Rec:
             x['Lived_t'] = x[self.time_key] - x['Min_t']
             lived_t = x['Lived_t']  # Series
 
-            lived_t = lived_t / 86400
-            print(lived_t.describe())
+            self.lived_t = lived_t / 86400
+            print(self.lived_t.describe())
         lived_time()
 
         offset_sessions = self.init(data)  # session start position offset
@@ -233,12 +234,18 @@ class GRU4Rec:
             while not finished:
                 minlen = (end - start).min()
                 out_idx = data.ItemIdx.values[start]
+                out_t = self.live_t[start]
                 for i in range(minlen - 1):
+                    # 获取当前迭代中当前batch的输入输出的id,lived_time
                     in_idx = out_idx
-                    out_idx = data.ItemIdx.values[start + i + 1]
+                    out_idx = data.ItemIdx.values[start + i + 1]  # 输出id是输入id后移一个时间步
+                    # find lived time
+                    in_t = out_t
+                    out_t = self.live_t[start + i + 1]
+
                     # prepare inputs, targeted outputs and hidden states
                     fetches = [self.cost, self.final_state, self.global_step, self.lr, self.train_op]
-                    feed_dict = {self.X: in_idx, self.Y: out_idx}
+                    feed_dict = {self.X: in_idx, self.Y: out_idx, self.T_in: in_t, self.T_out: out_t}
                     for j in range(self.layers):
                         feed_dict[self.state[j]] = state[j]
 
@@ -315,3 +322,160 @@ class GRU4Rec:
         preds, self.predict_state = self.sess.run(fetches, feed_dict)
         preds = np.asarray(preds).T
         return pd.DataFrame(data=preds, index=itemidmap.index)
+
+    def build_model2(self):
+        # with time input
+
+        self.X = tf.placeholder(tf.int32, [self.batch_size], name='input')  # (B,)
+        self.Y = tf.placeholder(tf.int32, [self.batch_size], name='output')  # (B,)
+        self.T_in = tf.placeholder(tf.int32, [self.batch_size], name='lived_time')  # (B,)
+        self.T_out = tf.placeholder(tf.int32, [self.batch_size], name='lived_time')  # (B,)
+        self.state = [tf.placeholder(tf.float32, [self.batch_size, self.rnn_size], name='rnn_state') for _ in
+                      range(self.layers)]  # (B,h)
+        self.global_step = tf.Variable(0, name='global_step', trainable=False)
+
+        with tf.variable_scope('gru_layer'):
+            # # 参数初始化
+            # sigma = self.sigma if self.sigma != 0 else np.sqrt(6.0 / (self.n_items + self.rnn_size))
+            # if self.init_as_normal:
+            #     initializer = tf.random_normal_initializer(mean=0, stddev=sigma)
+            # else:
+            #     initializer = tf.random_uniform_initializer(minval=-sigma, maxval=sigma)
+
+            # 新参数初始化
+            init2 = tf.contrib.layers.xavier_initializer()
+            embedding = tf.get_variable('embedding', [self.n_items, self.rnn_size], initializer=init2)  # input emb
+            softmax_W = tf.get_variable('softmax_w', [self.n_items, self.rnn_size], initializer=init2)  # output emb
+            softmax_b = tf.get_variable('softmax_b', [self.n_items], initializer=tf.constant_initializer(0.0))
+            time_emb = tf.get_variable('time_emb', [200, self.rnn_size], initializer=init2)
+
+        cell = rnn_cell.GRUCell(self.rnn_size, activation=self.hidden_act)
+        drop_cell = rnn_cell.DropoutWrapper(cell, output_keep_prob=self.dropout_p_hidden)
+        stacked_cell = rnn_cell.MultiRNNCell([drop_cell] * self.layers)
+
+        inputs = tf.nn.embedding_lookup(embedding, self.X) + tf.nn.embedding_lookup(time_emb, self.T_in)
+        output, state = stacked_cell(inputs, tuple(self.state))
+        self.final_state = state
+
+        if self.is_training:
+            '''
+            Use other examples of the minibatch as negative samples.
+            '''
+            sampled_W = tf.nn.embedding_lookup(softmax_W, self.Y) + tf.nn.embedding_lookup(time_emb, self.T_out)
+            sampled_b = tf.nn.embedding_lookup(softmax_b, self.Y)
+            logits = tf.matmul(output, sampled_W, transpose_b=True) + sampled_b
+            self.yhat = self.final_activation(logits)  # 采样点 or batch中每个成员的输出
+            self.cost = self.loss_function(self.yhat)
+        else:
+            logits = tf.matmul(output, softmax_W, transpose_b=True) + softmax_b
+            self.yhat = self.final_activation(logits)
+
+        if not self.is_training:
+            return
+
+        self.lr = tf.maximum(1e-5, tf.train.exponential_decay(self.learning_rate, self.global_step, self.decay_steps,
+                                                              self.decay, staircase=True))
+
+        '''
+        Try different optimizers.
+        '''
+        # optimizer = tf.train.AdagradOptimizer(self.lr)
+        optimizer = tf.train.AdamOptimizer(self.lr)
+        # optimizer = tf.train.AdadeltaOptimizer(self.lr)
+        # optimizer = tf.train.RMSPropOptimizer(self.lr)
+
+        tvars = tf.trainable_variables()
+        gvs = optimizer.compute_gradients(self.cost, tvars)
+        if self.grad_cap > 0:
+            capped_gvs = [(tf.clip_by_norm(grad, self.grad_cap), var) for grad, var in gvs]
+        else:
+            capped_gvs = gvs
+        self.train_op = optimizer.apply_gradients(capped_gvs, global_step=self.global_step)
+
+    def fit(self, data):
+        self.error_during_train = False
+
+        # data preprocess
+        # add 0-N index for item ('ItemIdx')
+        itemids = data[self.item_key].unique()
+        self.n_items = len(itemids)
+        # self.itemidmap = pd.Series(index=itemids, data=np.arange(self.n_items))
+        # data = pd.merge(data, pd.DataFrame({self.item_key: itemids, 'ItemIdx': self.itemidmap[itemids].values}),
+        #                 on=self.item_key, how='inner')
+
+        self.itemidmap = pd.DataFrame({self.item_key: itemids, 'ItemIdx': np.arange(self.n_items)})
+        data = pd.merge(data, self.itemidmap, on=self.item_key, how='inner')
+
+        # compute item lived time statistics
+        def lived_time():
+            grouped_item = data.groupby('ItemIdx', as_index=False)[self.time_key]
+            # item group by id, selected by time ['ItemIdx', 'Time']
+
+            min_t = grouped_item.agg(np.min)
+            min_t.columns = ['ItemIdx', 'Min_t']  # rename column
+            x = pd.merge(data, min_t, on='ItemIdx')  # merge min_t to data
+            x['Lived_t'] = x[self.time_key] - x['Min_t']
+            lived_t = x['Lived_t']  # Series
+
+            lived_t = lived_t / 86400
+            print(lived_t.describe())
+            return lived_t
+        lived_time()
+
+        offset_sessions = self.init(data)  # session start position offset
+        print('fitting model...')
+
+        # training
+        for epoch in range(self.n_epochs):
+            epoch_cost = []
+            state = [np.zeros([self.batch_size, self.rnn_size], dtype=np.float32) for _ in range(self.layers)]
+            # 每次选B个session，保存在iters中。开始位置(相对于data的索引)保存在start中。迭代一次包含minlen个batch。
+            # iters 用来迭代 session_idx_arr
+            session_idx_arr = np.arange(len(offset_sessions) - 1)
+            iters = np.arange(self.batch_size)
+            maxiter = iters.max()
+            start = offset_sessions[session_idx_arr[iters]]  # 这次batch中(一次迭代),每个session开始位置
+            end = offset_sessions[session_idx_arr[iters] + 1]  # end用来计算minlen
+            finished = False
+            while not finished:
+                minlen = (end - start).min()  # 最短session的长度
+                out_idx = data.ItemIdx.values[start]  # 根据start获取一个batch的item id
+                for i in range(minlen - 1):
+                    in_idx = out_idx
+                    out_idx = data.ItemIdx.values[start + i + 1]
+                    # prepare inputs, targeted outputs and hidden states
+                    fetches = [self.cost, self.final_state, self.global_step, self.lr, self.train_op]
+                    feed_dict = {self.X: in_idx, self.Y: out_idx}
+                    for j in range(self.layers):
+                        feed_dict[self.state[j]] = state[j]
+
+                    cost, state, step, lr, _ = self.sess.run(fetches, feed_dict)
+                    epoch_cost.append(cost)
+                    if np.isnan(cost):
+                        print(str(epoch) + ':Nan error!')
+                        self.error_during_train = True
+                        return
+                    if step == 1 or step % self.decay_steps == 0:
+                        avgc = np.mean(epoch_cost)
+                        print('Epoch {}\tStep {}\tlr: {:.6f}\tloss: {:.6f}'.format(epoch, step, lr, avgc))
+                start = start + minlen - 1
+                mask = np.arange(len(iters))[(end - start) <= 1]
+                for idx in mask:
+                    maxiter += 1
+                    if maxiter >= len(offset_sessions) - 1:
+                        finished = True
+                        break
+                    iters[idx] = maxiter
+                    start[idx] = offset_sessions[session_idx_arr[maxiter]]
+                    end[idx] = offset_sessions[session_idx_arr[maxiter] + 1]
+                if len(mask) and self.reset_after_session:
+                    for i in range(self.layers):
+                        state[i][mask] = 0
+
+            avgc = np.mean(epoch_cost)
+            if np.isnan(avgc):
+                print('Epoch {}: Nan error!'.format(epoch, avgc))
+                self.error_during_train = True
+                return
+            self.saver.save(self.sess, '{}/gru-model'.format(self.checkpoint_dir), global_step=epoch)
+
