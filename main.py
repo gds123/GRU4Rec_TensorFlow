@@ -123,7 +123,7 @@ if __name__ == '__main__':
         with tf.Session(config=gpu_config) as sess:
             gru = model.GRU4Rec(sess, args)
             if args.is_training:
-                gru.fit(data)
+                gru.fit2(data)
             else:
                 res = evaluation.evaluate_sessions_batch(gru, data, valid)
                 print('Recall@20: {}\tMRR@20: {}'.format(res[0], res[1]))

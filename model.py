@@ -72,7 +72,8 @@ class GRU4Rec:
         if not os.path.isdir(self.checkpoint_dir):
             raise Exception("[!] Checkpoint Dir not found")
 
-        self.build_model()
+        self.build_model2()
+        # self.build_model()
         self.sess.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=10)
 
