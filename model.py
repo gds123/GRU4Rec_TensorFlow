@@ -235,14 +235,14 @@ class GRU4Rec:
             while not finished:
                 minlen = (end - start).min()
                 out_idx = data.ItemIdx.values[start]
-                out_t = self.live_t[start]
+                out_t = self.lived_t[start]
                 for i in range(minlen - 1):
                     # 获取当前迭代中当前batch的输入输出的id,lived_time
                     in_idx = out_idx
                     out_idx = data.ItemIdx.values[start + i + 1]  # 输出id是输入id后移一个时间步
                     # find lived time
                     in_t = out_t
-                    out_t = self.live_t[start + i + 1]
+                    out_t = self.lived_t[start + i + 1]
 
                     # prepare inputs, targeted outputs and hidden states
                     fetches = [self.cost, self.final_state, self.global_step, self.lr, self.train_op]
@@ -345,8 +345,8 @@ class GRU4Rec:
 
             # 新参数初始化
             init2 = tf.contrib.layers.xavier_initializer()
-            embedding = tf.get_variable('embedding', [self.n_items, self.rnn_size], initializer=init2)  # input emb
-            softmax_W = tf.get_variable('softmax_w', [self.n_items, self.rnn_size], initializer=init2)  # output emb
+            embedding = tf.get_variable('embedding', [self.n_items, self.rnn_size])  # input emb
+            softmax_W = tf.get_variable('softmax_w', [self.n_items, self.rnn_size])  # output emb
             softmax_b = tf.get_variable('softmax_b', [self.n_items], initializer=tf.constant_initializer(0.0))
             time_emb = tf.get_variable('time_emb', [200, self.rnn_size], initializer=init2)
 
