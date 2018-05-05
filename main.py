@@ -66,32 +66,65 @@ def parseArgs():
 
 
 if __name__ == '__main__':
-    command_line = parseArgs()
-    data = pd.read_csv(PATH_TO_TRAIN, sep='\t', dtype={'ItemId': np.int64})
-    valid = pd.read_csv(PATH_TO_TEST, sep='\t', dtype={'ItemId': np.int64})
-    # 参数
-    args = Args()
-    args.n_items = len(data['ItemId'].unique())
-    args.layers = command_line.layer
-    args.rnn_size = command_line.size
-    args.n_epochs = command_line.epoch
-    args.learning_rate = command_line.lr
-    args.is_training = command_line.train
-    args.test_model = command_line.test
-    args.hidden_act = command_line.hidden_act
-    args.final_act = command_line.final_act
-    args.loss = command_line.loss
-    args.dropout_p_hidden = 1.0 if args.is_training == 0 else command_line.dropout
-    print(args.dropout_p_hidden)
+    def main():
+        command_line = parseArgs()
+        data = pd.read_csv(PATH_TO_TRAIN, sep='\t', dtype={'ItemId': np.int64})
+        valid = pd.read_csv(PATH_TO_TEST, sep='\t', dtype={'ItemId': np.int64})
+        # 参数
+        args = Args()
+        args.n_items = len(data['ItemId'].unique())
+        args.layers = command_line.layer
+        args.rnn_size = command_line.size
+        args.n_epochs = command_line.epoch
+        args.learning_rate = command_line.lr
+        args.is_training = command_line.train
+        args.test_model = command_line.test
+        args.hidden_act = command_line.hidden_act
+        args.final_act = command_line.final_act
+        args.loss = command_line.loss
+        args.dropout_p_hidden = 1.0 if args.is_training == 0 else command_line.dropout
+        print(args.dropout_p_hidden)
 
-    if not os.path.exists(args.checkpoint_dir):
-        os.mkdir(args.checkpoint_dir)
-    gpu_config = tf.ConfigProto()
-    gpu_config.gpu_options.allow_growth = True
-    with tf.Session(config=gpu_config) as sess:
-        gru = model.GRU4Rec(sess, args)
-        if args.is_training:
-            gru.fit(data)
-        else:
-            res = evaluation.evaluate_sessions_batch(gru, data, valid)
-            print('Recall@20: {}\tMRR@20: {}'.format(res[0], res[1]))
+        if not os.path.exists(args.checkpoint_dir):
+            os.mkdir(args.checkpoint_dir)
+        gpu_config = tf.ConfigProto()
+        gpu_config.gpu_options.allow_growth = True
+        with tf.Session(config=gpu_config) as sess:
+            gru = model.GRU4Rec(sess, args)
+            if args.is_training:
+                gru.fit(data)
+            else:
+                res = evaluation.evaluate_sessions_batch(gru, data, valid)
+                print('Recall@20: {}\tMRR@20: {}'.format(res[0], res[1]))
+
+    def main2():
+        command_line = parseArgs()
+        data = pd.read_csv(PATH_TO_TRAIN, sep='\t', dtype={'ItemId': np.int64})
+        valid = pd.read_csv(PATH_TO_TEST, sep='\t', dtype={'ItemId': np.int64})
+        # 参数
+        args = Args()
+        args.n_items = len(data['ItemId'].unique())
+        args.layers = command_line.layer
+        args.rnn_size = command_line.size
+        args.n_epochs = command_line.epoch
+        args.learning_rate = command_line.lr
+        args.is_training = command_line.train
+        args.test_model = command_line.test
+        args.hidden_act = command_line.hidden_act
+        args.final_act = command_line.final_act
+        args.loss = command_line.loss
+        args.dropout_p_hidden = 1.0 if args.is_training == 0 else command_line.dropout
+        print(args.dropout_p_hidden)
+
+        if not os.path.exists(args.checkpoint_dir):
+            os.mkdir(args.checkpoint_dir)
+        gpu_config = tf.ConfigProto()
+        gpu_config.gpu_options.allow_growth = True
+        with tf.Session(config=gpu_config) as sess:
+            gru = model.GRU4Rec(sess, args)
+            if args.is_training:
+                gru.fit(data)
+            else:
+                res = evaluation.evaluate_sessions_batch(gru, data, valid)
+                print('Recall@20: {}\tMRR@20: {}'.format(res[0], res[1]))
+    main2()
