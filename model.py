@@ -348,7 +348,7 @@ class GRU4Rec:
             embedding = tf.get_variable('embedding', [self.n_items, self.rnn_size])  # input emb
             softmax_W = tf.get_variable('softmax_w', [self.n_items, self.rnn_size])  # output emb
             softmax_b = tf.get_variable('softmax_b', [self.n_items], initializer=tf.constant_initializer(0.0))
-            time_emb = tf.get_variable('time_emb', [200, self.rnn_size], initializer=init2)
+            time_emb = tf.get_variable('time_emb', [200, self.rnn_size])
 
         cell = rnn_cell.GRUCell(self.rnn_size, activation=self.hidden_act)
         drop_cell = rnn_cell.DropoutWrapper(cell, output_keep_prob=self.dropout_p_hidden)
