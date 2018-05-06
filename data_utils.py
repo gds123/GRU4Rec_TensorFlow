@@ -79,17 +79,21 @@ class DataUtils(object):
         # 	Items: 37483
 
         # 1.num of days
-        self.n_days = (self.data[self.time_key].max() - self.data[self.time_key].min()) / 86400
+        self.n_days = (self.data[self.time_key].max() - self.data[self.time_key].min()) / 86400  # 180 days
         print('n_days: %s' % self.n_days)
 
         # 2.session in every day and 3.session length distribution
         data = self.data.copy()
         data[self.time_key] -= data[self.time_key].min()
         data[self.time_key] /= 86400
+        print('click time stat: ')
+        print(data[self.time_key].describe())
+
         sess_t = data.groupby(self.session_key, as_index=False)[self.time_key].agg(np.min)  # ['session_id', 'Time']
         sess_stat = sess_t.groupby(self.time_key).size()  # num of session in every day  #  ['Time', size]
         print('Session stat: ')
         print(sess_stat.describe())
+        print(sess_stat)
 
 
 
