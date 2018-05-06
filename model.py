@@ -215,7 +215,7 @@ class GRU4Rec:
             x['Lived_t'] = x[self.time_key] - x['Min_t']
             lived_t = x['Lived_t']  # Series
 
-            self.lived_t = lived_t / 86400
+            self.lived_t = lived_t // 86400
             print(self.lived_t.describe())
         lived_time()
 
@@ -418,7 +418,7 @@ class GRU4Rec:
             x['Lived_t'] = x[self.time_key] - x['Min_t']
             lived_t = x['Lived_t']  # Series
 
-            lived_t = lived_t / 86400
+            lived_t = lived_t // 86400
             print(lived_t.describe())
             return lived_t
         lived_time()
