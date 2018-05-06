@@ -86,6 +86,10 @@ if __name__ == '__main__':
         args.dropout_p_hidden = 1.0 if args.is_training == 0 else command_line.dropout
         print(args.dropout_p_hidden)
 
+        # print data stat
+        data_stat = data_utils.DataUtils(data, valid, args)
+        data_stat.session_stat()
+
         if not os.path.exists(args.checkpoint_dir):
             os.mkdir(args.checkpoint_dir)
         gpu_config = tf.ConfigProto()
@@ -133,4 +137,4 @@ if __name__ == '__main__':
             else:
                 res = evaluation.evaluate_sessions_batch(gru, data, valid)
                 print('Recall@20: {}\tMRR@20: {}'.format(res[0], res[1]))
-    main2()
+    main()

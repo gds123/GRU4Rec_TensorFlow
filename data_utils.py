@@ -31,7 +31,7 @@ class DataUtils(object):
 
         self.n_days = 0
 
-        def add_itemIdx(self):
+        def add_itemIdx():
             """
             add 0-N index for item ('ItemIdx')
             """
